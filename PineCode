@@ -1,0 +1,54 @@
+//@version=6
+indicator("Scalp Pattern Labels - AkhilG-exe", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// --- Scalper Precision Settings ---
+lookback = 3 
+error_margin = 0.0015 
+
+// --- Pivot Points ---
+ph = ta.pivothigh(lookback, lookback)
+pl = ta.pivotlow(lookback, lookback)
+
+// Store points for pattern drawing
+var float p1y = na, var int p1x = na
+var float p2y = na, var int p2x = na
+var float p3y = na, var int p3x = na
+
+// --- Logic to Shift Points & Draw Connecting Lines ---
+if not na(ph)
+    p3y := p2y, p3x := p2x
+    p2y := p1y, p2x := p1x
+    p1y := ph,  p1x := bar_index[lookback]
+    if not na(p2y)
+        line.new(p2x, p2y, p1x, p1y, color=color.new(color.red, 50), width=1)
+
+if not na(pl)
+    p3y := p2y, p3x := p2x
+    p2y := p1y, p2x := p1x
+    p1y := pl,  p1x := bar_index[lookback]
+    if not na(p2y)
+        line.new(p2x, p2y, p1x, p1y, color=color.new(color.green, 50), width=1)
+
+// --- Pattern Logic Definitions ---
+isDoubleBottom = not na(pl) and math.abs(p1y - p3y) <= (p1y * error_margin)
+isDoubleTop    = not na(ph) and math.abs(p1y - p3y) <= (p1y * error_margin)
+isHeadShoulders = not na(ph) and p2y > p1y and p2y > p3y // Simplified H&S
+isInvHS         = not na(pl) and p2y < p1y and p2y < p3y // Simplified Inverse H&S
+
+// --- Dynamic Labeling & Highlighting ---
+
+// 1. SELL Patterns (Red Labels)
+if isDoubleTop
+    label.new(bar_index, high, text="DOUBLE TOP\n(SELL)", style=label.style_label_down, color=color.red, textcolor=color.white)
+if isHeadShoulders
+    label.new(bar_index, high, text="H&S\n(SELL)", style=label.style_label_down, color=color.maroon, textcolor=color.white)
+
+// 2. BUY Patterns (Green Labels)
+if isDoubleBottom
+    label.new(bar_index, low, text="DOUBLE BOTTOM\n(BUY)", style=label.style_label_up, color=color.green, textcolor=color.white)
+if isInvHS
+    label.new(bar_index, low, text="INV H&S\n(BUY)", style=label.style_label_up, color=color.teal, textcolor=color.white)
+
+// Global background highlight to avoid scope error
+bgCol = (isDoubleBottom or isInvHS) ? color.new(color.green, 90) : (isDoubleTop or isHeadShoulders) ? color.new(color.red, 90) : na
+bgcolor(bgCol)
